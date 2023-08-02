@@ -13,12 +13,77 @@
     <div class="row justify-content-center mt-5">
         <div class="col-md-5 col-sm-12 text-center">
             <h3 class="pb-3">Order Summary:</h3>
-            {% for item in items %}
+            {% for item in items.all %}
                 <p>{{ item.name }} <span class="pl-3">{{ item.price }}</span></p>
             {% endfor %}
 
             <p class="font-weight-bold pt-4">Total: {{ price }}</p>
         </div>
     </div>
+
+    <div class="row justify-content-center pb-2 pt-5">
+        <div class="col-md-6 text-center">
+            <h3>Pay Now or Pay Cash On Delivery</h3>
+        </div>
+    </div>
+
+    <div class="row justify-content-center pt-3 pb-5">
+        <div class="col-md-6 text-center">
+            <div id="paypal-button"></div>
+        </div>
+    </div>
 </div>
+
+<script src="https://www.paypalobjects.com/api/checkout.js"></script>
+
+<script>
+     paypal.Button.render({
+    // Configure environment
+    env: 'sandbox',
+    client: {
+      sandbox: 'ATf0mGB3vK4K0ruj9oujCFC_YSC_2W-PmNuNYNdcqdixOKmz7mic_Wadms0Ua7d7X9T4sl9phxJwwgIh',
+      production: 'demo_production_client_id'
+    },
+    // Customize button (optional)
+    locale: 'en_US',
+    style: {
+      size: 'small',
+      color: 'gold',
+      shape: 'pill',
+    },
+
+    // Enable Pay Now checkout flow (optional)
+    commit: true,
+
+    // Set up a payment
+    payment: function(data, actions) {
+      return actions.payment.create({
+        transactions: [{
+          amount: {
+            total: '{{ price }}',
+            currency: 'USD'
+          }
+        }]
+      });
+    },
+    // Execute the payment
+    onAuthorize: function(data, actions) {
+      return actions.payment.execute().then(function() {
+        // Show a confirmation message to the buyer
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'order-confirmation' pk %}",
+            beforeSend: function(request) {
+                request.setRequestHeader('X-CSRFToken', csrftoken)
+            },
+            data: JSON.stringify({'isPaid': true}),
+            success: function(data) {
+                window.location.href = '/payment-confirmation/'
+            }
+        })
+      });
+    }
+  }, '#paypal-button');
+
+</script>
 {% endblock content %}
